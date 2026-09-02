@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lost Fortune – Prototip</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0a1628;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #1a3a4a;
+    }
+    #ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #dialogue {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 720px;
+      width: 90%;
+      background: rgba(10, 22, 40, 0.92);
+      border: 2px solid #c9a227;
+      border-radius: 12px;
+      padding: 18px 22px;
+      color: #f5e6c8;
+      font-size: 16px;
+      line-height: 1.45;
+      display: none;
+      pointer-events: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #dialogue .speaker {
+      color: #c9a227;
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+    #dialogue .text { margin-bottom: 12px; }
+    #dialogue .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #dialogue button {
+      background: #2a4a5a;
+      border: 1px solid #c9a227;
+      color: #f5e6c8;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      pointer-events: auto;
+    }
+    #dialogue button:hover { background: #3a5a6a; }
+    #hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .bar-box {
+      background: rgba(10,22,40,0.85);
+      border: 1px solid #c9a22755;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #f5e6c8;
+      font-size: 13px;
+      min-width: 140px;
+    }
+    .hp-bar {
+      height: 10px;
+      background: #2a1a1a;
+      border-radius: 4px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #c0392b, #e74c3c);
+      width: 100%;
+      transition: width 0.25s;
+    }
+    #objective {
+      position: absolute;
+      top: 70px;
+      left: 12px;
+      background: rgba(10,22,40,0.85);
+      border-left: 3px solid #c9a227;
+      padding: 8px 14px;
+      color: #f5e6c8;
+      font-size: 14px;
+      max-width: 280px;
+      display: none;
+    }
+    #inventory {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(10,22,40,0.9);
+      border: 1px solid #c9a227;
+      border-radius: 10px;
+      padding: 10px;
+      color: #f5e6c8;
+      font-size: 13px;
+      display: none;
+      min-width: 160px;
+    }
+    #inventory h4 { color: #c9a227; margin-bottom: 6px; }
+    #controls-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(10,22,40,0.8);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #a0b0c0;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    #title-screen {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #0a1628 0%, #1a3a4a 60%, #2a5a4a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      color: #f5e6c8;
+      text-align: center;
+      padding: 20px;
+    }
+    #title-screen h1 {
+      font-size: clamp(36px, 8vw, 64px);
+      letter-spacing: 6px;
+      color: #c9a227;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      margin-bottom: 8px;
+    }
+    #title-screen .sub {
+      font-size: 18px;
+      opacity: 0.85;
+      margin-bottom: 40px;
+    }
+    #title-screen button {
+      background: #c9a227;
+      color: #0a1628;
+      border: none;
+      padding: 14px 36px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      pointer-events: auto;
+    }
+    #title-screen button:hover { background: #e0b83a; }
+    #fade {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 50;
+      transition: opacity 1.2s;
+    }
+    #cinematic-text {
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #f5e6c8;
+      font-size: 22px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1.5s;
+      z-index: 60;
+      text-shadow: 0 2px 12px #000;
+      pointer-events: none;
+    }
+    /* Mobile touch controls */
+    #touch {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      display: none;
+    }
+    .joy-base {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      width: 110px;
+      height: 110px;
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 50%;
+      pointer-events: auto;
+    }
+    .joy-knob {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(201,162,39,0.7);
+      border-radius: 50%;
+      top: 30px;
+      left: 30px;
+    }
+    .btn-action {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      width: 70px;
+      height: 70px;
+      background: rgba(201,162,39,0.55);
+      border: 2px solid #c9a227;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      text-align: center;
+    }
+    .btn-run {
+      right: 120px;
+      bottom: 50px;
+      width: 55px;
+      height: 55px;
+      font-size: 11px;
+    }
+    @media (max-width: 900px), (pointer: coarse) {
+      #touch { display: block; }
+      #controls-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
+    <div id="hud">
+      <div class="bar-box">
+        <div>Nikolas Varela</div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+      </div>
+      <div class="bar-box" id="goldBox" style="text-align:right">Zlatnici: <span id="gold">0</span></div>
+    </div>
+    <div id="objective"></div>
+    <div id="inventory">
+      <h4>Torba</h4>
+      <div id="invList">Prazno</div>
+    </div>
+    <div id="controls-hint">
+      WASD – kretanje · Shift – trčanje · Space – skok/penjanje<br>
+      LMB / F – mač · E – interakcija · I – torba · Esc – pauza
+    </div>
+  </div>
+  <div id="dialogue">
+    <div class="speaker" id="dlgSpeaker"></div>
+    <div class="text" id="dlgText"></div>
+    <div class="choices" id="dlgChoices"></div>
+  </div>
+  <div id="title-screen">
+    <h1>LOST FORTUNE</h1>
+    <div class="sub">Prototip · Karipska avantura</div>
+    <p style="max-width:420px;opacity:0.75;margin-bottom:28px;font-size:15px">
+      Nikolas Varela, 20 godina. Malo karipsko selo. Jedan dan koji mijenja sve.
+    </p>
+    <button id="startBtn">POČNI</button>
+  </div>
+  <div id="fade"></div>
+  <div id="cinematic-text"></div>
+  <div id="touch">
+    <div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div>
+    <div class="btn-action" id="btnAttack">MAČ</div>
+    <div class="btn-action btn-run" id="btnRun">TRČI</div>
+  </div>
+
+  <script>
+  // ============================================================
+  // LOST FORTUNE – Playable Prototype
+  // Top-down Caribbean adventure feel
+  // ============================================================
+
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---------- STATE ----------
+  const state = {
+    phase: 'title', // title | intro | tutorial | parkour | mission | free | ending
+    gold: 0,
+    inventory: [],
+    hp: 100,
+    maxHp: 100,
+    objective: '',
+    dialogue: null,
+    fade: 0,
+    time: 0,
+    camera: { x: 0, y: 0 },
+    keys: {},
+    mouse: { x: 0, y: 0, down: false },
+    touchJoy: { active: false, dx: 0, dy: 0 },
+    touchRun: false,
+    touchAttack: false,
+    paused: false
+  };
+
+  // ---------- WORLD ----------
+  const TILE = 48;
+  // Simple village map (tile based, 0=sand/grass, 1=water, 2=house, 3=road, 4=rock, 5=tree, 6=roof)
+  // World size ~ 40x30 tiles
+  const MAP_W = 48;
+  const MAP_H = 36;
+  const map = [];
+  for (let y = 0; y < MAP_H; y++) {
+    map[y] = [];
+    for (let x = 0; x < MAP_W; x++) {
+      // beach south
+      if (y > 28) map[y][x] = 1; // water
+      else if (y > 26) map[y][x] = 0; // sand
+      else map[y][x] = (Math.random() < 0.08) ? 5 : 0; // grass + trees
+    }
+  }
+  // place a few houses (simple rectangles of tile 2)
+  const houses = [
+    {x:8,y:10,w:4,h:3}, {x:16,y:8,w:5,h:4}, {x:26,y:11,w:4,h:3},
+    {x:12,y:16,w:3,h:3}, {x:22,y:17,w:4,h:3}, {x:32,y:9,w:3,h:3}
+  ];
+  houses.forEach(h => {
+    for (let dy=0;dy<h.h;dy++) for (let dx=0;dx<h.w;dx++) {
+      if (h.y+dy < MAP_H && h.x+dx < MAP_W) map[h.y+dy][h.x+dx] = 2;
+    }
+  });
+  // road from beach to center
+  for (let y=20; y<=26; y++) {
+    map[y][18] = 3; map[y][19] = 3;
+  }
+  for (let x=10; x<30; x++) {
+    map[18][x] = 3; map[19][x] = 3;
+  }
+  // tavern / shop near center
+  for (let dy=0;dy<3;dy++) for (let dx=0;dx<4;dx++) map[14+dy][19+dx] = 2;
+
+  // Parkour roofs (special high tiles)
+  const roofs = [
+    {x:16,y:8,w:5,h:4}, // big house
+    {x:22,y:17,w:4,h:3},
+    {x:26,y:11,w:4,h:3}
+  ];
+
+  // ---------- ENTITIES ----------
+  const player = {
+    x: 19 * TILE + 20,
+    y: 24 * TILE,
+    vx: 0, vy: 0,
+    speed: 2.4,
+    runMul: 1.7,
+    facing: 0, // radians
+    radius: 14,
+    sword: false,
+    attacking: 0,
+    jump: 0, // visual height
+    onRoof: false,
+    invuln: 0
+  };
+
+  const npcs = [
+    { id:'father', name:'Otac Tomás', x:19*TILE, y:22*TILE, color:'#8B5A2B', radius:16, routine:[], dialogue:null, state:'idle' },
+    { id:'friend1', name:'Marco', x:14*TILE, y:20*TILE, color:'#2E8B57', radius:14, state:'idle' },
+    { id:'friend2', name:'Sofía', x:15*TILE+20, y:20*TILE+10, color:'#CD5C5C', radius:14, state:'idle' },
+    { id:'shop', name:'Gospođa Rosa', x:21*TILE, y:15*TILE, color:'#DAA520', radius:15, state:'idle' },
+    { id:'fisher', name:'Stari Diego', x:12*TILE, y:26*TILE, color:'#4682B4', radius:15, state:'idle' },
+    { id:'villager1', name:'Ana', x:10*TILE, y:12*TILE, color:'#D2691E', radius:13, state:'walk' },
+    { id:'villager2', name:'Pedro', x:28*TILE, y:14*TILE, color:'#556B2F', radius:13, state:'walk' }
+  ];
+
+  // simple patrol for some NPCs
+  npcs.forEach(n => {
+    if (n.state === 'walk') {
+      n.wx = n.x; n.wy = n.y;
+      n.targetX = n.x + (Math.random()-0.5)*200;
+      n.targetY = n.y + (Math.random()-0.5)*120;
+      n.timer = 0;
+    }
+  });
+
+  // Enemies for mission
+  const enemies = [];
+
+  // Particles / effects
+  const particles = [];
+
+  // ---------- HELPERS ----------
+  function worldToScreen(wx, wy) {
+    return {
+      x: wx - state.camera.x + W/2,
+      y: wy - state.camera.y + H/2
+    };
+  }
+  function dist(a,b) {
+    return Math.hypot(a.x-b.x, a.y-b.y);
+  }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  function setObjective(t) {
+    state.objective = t;
+    const el = document.getElementById('objective');
+    if (t) {
+      el.style.display = 'block';
+      el.textContent = t;
+    } else el.style.display = 'none';
+  }
+
+  function showDialogue(speaker, text, choices) {
+    state.dialogue = { speaker, text, choices: choices || [] };
+    const box = document.getElementById('dialogue');
+    document.getElementById('dlgSpeaker').textContent = speaker;
+    document.getElementById('dlgText').textContent = text;
+    const ch = document.getElementById('dlgChoices');
+    ch.innerHTML = '';
+    if (choices && choices.length) {
+      choices.forEach(c => {
+        const b = document.createElement('button');
+        b.textContent = c.label;
+        b.onclick = () => { c.fn(); hideDialogue(); };
+        ch.appendChild(b);
+      });
+    } else {
+      const b = document.createElement('button');
+      b.textContent = 'Nastavi';
+      b.onclick = () => hideDialogue();
+      ch.appendChild(b);
+    }
+    box.style.display = 'block';
+  }
+  function hideDialogue() {
+    state.dialogue = null;
+    document.getElementById('dialogue').style.display = 'none';
+  }
+
+  function addItem(name) {
+    state.inventory.push(name);
+    updateInv();
+  }
+  function updateInv() {
+    const el = document.getElementById('invList');
+    el.textContent = state.inventory.length ? state.inventory.join(', ') : 'Prazno';
+  }
+  function updateHUD() {
+    document.getElementById('hpFill').style.width = (state.hp/state.maxHp*100)+'%';
+    document.getElementById('gold').textContent = state.gold;
+  }
+
+  // ---------- INPUT ----------
+  window.addEventListener('keydown', e => {
+    state.keys[e.code] = true;
+    if (e.code === 'KeyI') {
+      const inv = document.getElementById('inventory');
+      inv.style.display = inv.style.display === 'block' ? 'none' : 'block';
+    }
+    if (e.code === 'KeyE') tryInteract();
+    if (e.code === 'KeyF' || e.code === 'Space') {
+      if (e.code === 'KeyF') player.attacking = 12;
+    }
+    if (e.code === 'Escape' && state.phase !== 'title') {
+      // simple pause ignore for prototype
+    }
+  });
+  window.addEventListener('keyup', e => { state.keys[e.code] = false; });
+  canvas.addEventListener('mousedown', e => {
+    state.mouse.down = true;
+    player.attacking = 12;
+  });
+  canvas.addEventListener('mouseup', () => state.mouse.down = false);
+  canvas.addEventListener('mousemove', e => {
+    state.mouse.x = e.clientX;
+    state.mouse.y = e.clientY;
+  });
+
+  // Touch joystick
+  const joyBase = document.getElementById('joyBase');
+  const joyKnob = document.getElementById('joyKnob');
+  let joyId = null;
+  joyBase.addEventListener('touchstart', e => {
+    e.preventDefault();
+    joyId = e.changedTouches[0].identifier;
+    state.touchJoy.active = true;
+  }, {passive:false});
+  window.addEventListener('touchmove', e => {
+    for (let t of e.changedTouches) {
+      if (t.identifier === joyId) {
+        const rect = joyBase.getBoundingClientRect();
+        let dx = t.clientX - (rect.left + rect.width/2);
+        let dy = t.clientY - (rect.top + rect.height/2);
+        const max = 40;
+        const len = Math.hypot(dx,dy) || 1;
+        if (len > max) { dx = dx/len*max; dy = dy/len*max; }
+        state.touchJoy.dx = dx / max;
+        state.touchJoy.dy = dy / max;
+        joyKnob.style.left = (30 + dx) + 'px';
+        joyKnob.style.top = (30 + dy) + 'px';
+      }
+    }
+  }, {passive:false});
+  window.addEventListener('touchend', e => {
+    for (let t of e.changedTouches) {
+      if (t.identifier === joyId) {
+        joyId = null;
+        state.touchJoy.active = false;
+        state.touchJoy.dx = 0; state.touchJoy.dy = 0;
+        joyKnob.style.left = '30px'; joyKnob.style.top = '30px';
+      }
+    }
+  });
+  document.getElementById('btnAttack').addEventListener('touchstart', e => {
+    e.preventDefault(); player.attacking = 12; state.touchAttack = true;
+  }, {passive:false});
+  document.getElementById('btnRun').addEventListener('touchstart', e => {
+    e.preventDefault(); state.touchRun = true;
+  }, {passive:false});
+  document.getElementById('btnRun').addEventListener('touchend', () => state.touchRun = false);
+
+  // ---------- STORY FLOW ----------
+  function startGame() {
+    document.getElementById('title-screen').style.display = 'none';
+    state.phase = 'intro';
+    player.x = 19*TILE + 10;
+    player.y = 25*TILE;
+    setObjective('Pronađi oca u selu');
+    showDialogue('Nikolas', 'Još jedan miran dan u selu... ili možda ne. Otac me zove na trening.', [
+      { label: 'Idem k njemu', fn: () => { state.phase = 'tutorial'; setObjective('Priđi ocu Tomásu i razgovaraj s njim (E)'); } }
+    ]);
+  }
+  document.getElementById('startBtn').onclick = startGame;
+
+  function tryInteract() {
+    if (state.dialogue) return;
+    // Father
+    const father = npcs.find(n => n.id === 'father');
+    if (state.phase === 'tutorial' && dist(player, father) < 50) {
+      showDialogue('Otac Tomás', 'Nikolas! Konačno. Vrijeme je da naučiš držati mač kao pravi čovjek, a ne kao ribar. Prati me.', [
+        { label: 'Spreman sam', fn: startTutorialCombat }
+      ]);
+      return;
+    }
+    // Friends after tutorial
+    if (state.phase === 'parkour') {
+      const m = npcs.find(n => n.id === 'friend1');
+      if (dist(player, m) < 50) {
+        showDialogue('Marco', 'Hej Niko! Natjecanje: tko prvi stigne na krov velike kuće (one sa crvenim krovom)? Parkour pravila vrijede!', [
+          { label: 'Prihvaćam!', fn: () => setObjective('Parkour: dođi na krov velike kuće (sjeverno od središta)') }
+        ]);
+        return;
+      }
+    }
+    // Shop
+    const shop = npcs.find(n => n.id === 'shop');
+    if (dist(player, shop) < 45) {
+      showDialogue('Gospođa Rosa', 'Dobrodošao, Nikolas. Imam svježi kruh i malo ribe. Trebaš li nešto?', [
+        { label: 'Kupi kruh (2 zlata)', fn: () => {
+          if (state.gold >= 2) { state.gold -= 2; addItem('Kruh'); updateHUD(); }
+          else showDialogue('Rosa', 'Nemaš dovoljno zlata, dragi.');
+        }},
+        { label: 'Ne, hvala', fn: () => {} }
+      ]);
+      return;
+    }
+    // Fisher side quest
+    const fisher = npcs.find(n => n.id === 'fisher');
+    if (dist(player, fisher) < 45 && state.phase === 'free') {
+      if (!state.inventory.includes('Riba')) {
+        showDialogue('Stari Diego', 'Ejj, momče. Ako mi doneseš jednu ribu s obale, dat ću ti 5 zlatnika. Samo stani blizu vode i pritisni E.', [
+          { label: 'U redu', fn: () => setObjective('Ulovi ribu na obali (stani uz vodu + E)') }
+        ]);
+      } else {
+        showDialogue('Diego', 'Haha, dobra riba! Evo ti 5 zlatnika.', [
+          { label: 'Hvala', fn: () => {
+            state.inventory = state.inventory.filter(i => i !== 'Riba');
+            state.gold += 5;
+            updateInv(); updateHUD();
+            setObjective('Istraži selo ili kreni prema obali za kraj');
+          }}
+        ]);
+      }
+      return;
+    }
+    // Fishing spot
+    if (state.phase === 'free' && player.y > 26*TILE && player.y < 28*TILE) {
+      if (!state.inventory.includes('Riba')) {
+        addItem('Riba');
+        showDialogue('Nikolas', 'Uhvatio sam ribu! Diego će biti sretan.');
+        setObjective('Odnesi ribu Starom Diegu');
+      }
+      return;
+    }
+  }
+
+  function startTutorialCombat() {
+    setObjective('Trening: kreći se (WASD), trči (Shift), skoči (Space), napadni (LMB/F)');
+    // spawn a training dummy
+    enemies.push({
+      x: 22*TILE, y: 22*TILE,
+      hp: 30, maxHp: 30, radius: 16, color: '#8B4513',
+      type: 'dummy', vx:0, vy:0, attackCd:0, state:'idle'
+    });
+    showDialogue('Otac Tomás', 'Prvo – stani pred lutku. Udari je mačem. Osjeti težinu. Kad je srušiš, pričat ćemo dalje.');
+  }
+
+  function onDummyDestroyed() {
+    showDialogue('Otac Tomás', 'Dobro. Sada znaš osnovu. Idi se igrati s prijateljima – ali ne zaboravi: svijet vani nije igra.', [
+      { label: 'Hvala, otac', fn: () => {
+        state.phase = 'parkour';
+        setObjective('Nađi Marca i Sofíu blizu središta sela');
+        // move friends closer
+        const m = npcs.find(n=>n.id==='friend1');
+        m.x = 18*TILE; m.y = 19*TILE;
+        const s = npcs.find(n=>n.id==='friend2');
+        s.x = 18.5*TILE; s.y = 19.3*TILE;
+      }}
+    ]);
+  }
+
+  function checkParkourWin() {
+    // big house roof approx 16-21 x, 8-12 y
+    if (player.x > 16*TILE && player.x < 21*TILE && player.y > 8*TILE && player.y < 12*TILE && player.jump > 8) {
+      showDialogue('Marco', 'Pobijedio si! Brži si nego što izgledaš. Evo, otac te zove – ima neki mali posao van sela.', [
+        { label: 'Idem', fn: startMission }
+      ]);
+      state.phase = 'mission';
+    }
+  }
+
+  function startMission() {
+    setObjective('Idi sjeverno od sela – pronađi nestale zalihe');
+    // clear dummy
+    enemies.length = 0;
+    // place a small camp with 2 bandits outside north
+    enemies.push({
+      x: 20*TILE, y: 4*TILE, hp: 40, maxHp:40, radius:15, color:'#4a2a2a',
+      type:'bandit', vx:0,vy:0, attackCd:0, state:'patrol', alert:0,
+      patrol: [{x:18*TILE,y:4*TILE},{x:22*TILE,y:5*TILE}]
+    });
+    enemies.push({
+      x: 24*TILE, y: 3*TILE, hp: 35, maxHp:35, radius:14, color:'#5a3a2a',
+      type:'bandit', vx:0,vy:0, attackCd:0, state:'patrol', alert:0,
+      patrol: [{x:23*TILE,y:2*TILE},{x:25*TILE,y:4*TILE}]
+    });
+    // crate of supplies
+    window.supplies = { x: 21*TILE, y: 3.5*TILE, taken: false };
+  }
+
+  function checkMissionComplete() {
+    if (window.supplies && !window.supplies.taken && dist(player, window.supplies) < 40) {
+      // if enemies still alive, can still take but risk
+      window.supplies.taken = true;
+      addItem('Zalihe');
+      state.gold += 8;
+      updateHUD();
+      showDialogue('Nikolas', 'Našao sam zalihe. Vrijeme da se vratim u selo.', [
+        { label: 'Nazad u selo', fn: () => {
+          state.phase = 'free';
+          setObjective('Vrati se u selo. Razgovaraj s ljudima, istraži, ili idi na obalu.');
+          // remove remaining enemies for free roam feel
+          enemies.length = 0;
+        }}
+      ]);
+    }
+  }
+
+  // Ending trigger: stand on beach looking south
+  function checkEnding() {
+    if (state.phase === 'free' && player.y > 27*TILE && player.y < 28.5*TILE && player.x > 15*TILE && player.x < 25*TILE) {
+      startEnding();
+    }
+  }
+
+  function startEnding() {
+    state.phase = 'ending';
+    setObjective('');
+    hideDialogue();
+    // cinematic
+    const fade = document.getElementById('fade');
+    const ctext = document.getElementById('cinematic-text');
+    fade.style.opacity = '0.4';
+    setTimeout(() => {
+      ctext.textContent = 'Nikolas gleda prema horizontu...';
+      ctext.style.opacity = '1';
+    }, 800);
+    setTimeout(() => {
+      ctext.style.opacity = '0';
+      fade.style.opacity = '1';
+    }, 3500);
+    setTimeout(() => {
+      ctext.textContent = 'LOST FORTUNE';
+      ctext.style.opacity = '1';
+      ctext.style.fontSize = '36px';
+      ctext.style.letterSpacing = '8px';
+      ctext.style.color = '#c9a227';
+    }, 5000);
+    setTimeout(() => {
+      ctext.innerHTML = 'LOST FORTUNE<br><span style="font-size:16px;letter-spacing:2px;opacity:0.8">Prototip završen · Hvala što si igrao</span>';
+    }, 7000);
+  }
+
+  // ---------- UPDATE ----------
+  function update(dt) {
+    if (state.phase === 'title' || state.phase === 'ending' || state.dialogue) return;
+    state.time += dt;
+
+    // movement
+    let dx = 0, dy = 0;
+    if (state.keys['KeyW'] || state.keys['ArrowUp']) dy -= 1;
+    if (state.keys['KeyS'] || state.keys['ArrowDown']) dy += 1;
+    if (state.keys['KeyA'] || state.keys['ArrowLeft']) dx -= 1;
+    if (state.keys['KeyD'] || state.keys['ArrowRight']) dx += 1;
+    if (state.touchJoy.active) {
+      dx += state.touchJoy.dx;
+      dy += state.touchJoy.dy;
+    }
+    const len = Math.hypot(dx,dy) || 1;
+    dx /= len; dy /= len;
+    const running = state.keys['ShiftLeft'] || state.keys['ShiftRight'] || state.touchRun;
+    const spd = player.speed * (running ? player.runMul : 1);
+    player.vx = dx * spd;
+    player.vy = dy * spd;
+
+    // simple collision with houses (tile 2)
+    const nx = player.x + player.vx;
+    const ny = player.y + player.vy;
+    const tx = Math.floor(nx / TILE);
+    const ty = Math.floor(ny / TILE);
+    let blocked = false;
+    if (tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H) {
+      if (map[ty][tx] === 2 || map[ty][tx] === 1) blocked = true;
+      // allow roofs if jumping
+    }
+    // allow water edge for fishing
+    if (!blocked || (map[ty] && map[ty][tx] === 1 && ty >= 27)) {
+      player.x = nx;
+      player.y = ny;
+    }
+
+    // jump / height for parkour visual
+    if ((state.keys['Space'] || state.touchAttack) && player.jump <= 0) {
+      player.jump = 18;
+    }
+    if (player.jump > 0) {
+      player.jump -= 0.9;
+      if (player.jump < 0) player.jump = 0;
+    }
+
+    // facing
+    if (dx || dy) player.facing = Math.atan2(dy, dx);
+
+    // attack
+    if (player.attacking > 0) {
+      player.attacking--;
+      // hit enemies
+      enemies.forEach(e => {
+        if (e.hp <= 0) return;
+        const d = dist(player, e);
+        if (d < 42 && player.attacking === 10) {
+          e.hp -= 15;
+          // knockback
+          const a = Math.atan2(e.y - player.y, e.x - player.x);
+          e.x += Math.cos(a)*12;
+          e.y += Math.sin(a)*12;
+          particles.push({x:e.x, y:e.y, life:20, color:'#ff6666'});
+          if (e.hp <= 0 && e.type === 'dummy') onDummyDestroyed();
+        }
+      });
+    }
+
+    // enemy AI simple
+    enemies.forEach(e => {
+      if (e.hp <= 0) return;
+      if (e.type === 'dummy') return;
+      const d = dist(player, e);
+      if (d < 180) e.alert = Math.min(100, e.alert + 2);
+      else e.alert = Math.max(0, e.alert - 1);
+
+      if (e.alert > 40) {
+        // chase
+        const a = Math.atan2(player.y - e.y, player.x - e.x);
+        e.x += Math.cos(a) * 1.3;
+        e.y += Math.sin(a) * 1.3;
+        if (d < 30 && e.attackCd <= 0) {
+          state.hp -= 8;
+          player.invuln = 30;
+          e.attackCd = 40;
+          updateHUD();
+          if (state.hp <= 0) {
+            state.hp = 100;
+            player.x = 19*TILE; player.y = 24*TILE;
+            showDialogue('Nikolas', 'Uf... trebam biti oprezniji.');
+            updateHUD();
+          }
+        }
+      } else if (e.patrol) {
+        // simple patrol
+        const p = e.patrol[Math.floor(state.time/120) % e.patrol.length];
+        const a = Math.atan2(p.y - e.y, p.x - e.x);
+        e.x += Math.cos(a)*0.6;
+        e.y += Math.sin(a)*0.6;
+      }
+      if (e.attackCd > 0) e.attackCd--;
+    });
+
+    // NPC idle walk
+    npcs.forEach(n => {
+      if (n.state !== 'walk') return;
+      n.timer++;
+      if (n.timer > 180) {
+        n.targetX = n.wx + (Math.random()-0.5)*160;
+        n.targetY = n.wy + (Math.random()-0.5)*100;
+        n.timer = 0;
+      }
+      const a = Math.atan2(n.targetY - n.y, n.targetX - n.x);
+      n.x += Math.cos(a)*0.4;
+      n.y += Math.sin(a)*0.4;
+    });
+
+    // camera follow
+    state.camera.x += (player.x - state.camera.x) * 0.08;
+    state.camera.y += (player.y - state.camera.y) * 0.08;
+
+    // phase checks
+    if (state.phase === 'parkour') checkParkourWin();
+    if (state.phase === 'mission') checkMissionComplete();
+    if (state.phase === 'free') checkEnding();
+
+    // particles
+    for (let i=particles.length-1;i>=0;i--) {
+      particles[i].life--;
+      if (particles[i].life <= 0) particles.splice(i,1);
+    }
+
+    if (player.invuln > 0) player.invuln--;
+  }
+
+  // ---------- DRAW ----------
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+
+    // sky / water gradient background
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0, '#4a7c9b');
+    g.addColorStop(0.55, '#2d5a6a');
+    g.addColorStop(1, '#1a3a4a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // draw tiles
+    const startTX = Math.max(0, Math.floor((state.camera.x - W/2)/TILE) - 1);
+    const endTX = Math.min(MAP_W, Math.ceil((state.camera.x + W/2)/TILE) + 1);
+    const startTY = Math.max(0, Math.floor((state.camera.y - H/2)/TILE) - 1);
+    const endTY = Math.min(MAP_H, Math.ceil((state.camera.y + H/2)/TILE) + 1);
+
+    for (let ty = startTY; ty < endTY; ty++) {
+      for (let tx = startTX; tx < endTX; tx++) {
+        const t = map[ty][tx];
+        const s = worldToScreen(tx*TILE, ty*TILE);
+        if (t === 0) { // grass/sand
+          ctx.fillStyle = ty > 25 ? '#d2b48c' : '#3d7a4a';
+          ctx.fillRect(s.x, s.y, TILE+1, TILE+1);
+          // subtle variation
+          if ((tx+ty)%3===0) {
+            ctx.fillStyle = ty > 25 ? '#c4a87a' : '#458a52';
+            ctx.fillRect(s.x+8, s.y+8, 12, 12);
+          }
+        } else if (t === 1) { // water
+          ctx.fillStyle = '#1e6a8a';
+          ctx.fillRect(s.x, s.y, TILE+1, TILE+1);
+          // waves
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.beginPath();
+          ctx.ellipse(s.x + (state.time*20 + tx*30)%TILE, s.y+20, 18, 6, 0, 0, Math.PI*2);
+          ctx.fill();
+        } else if (t === 2) { // house body
+          ctx.fillStyle = '#6b4226';
+          ctx.fillRect(s.x, s.y, TILE+1, TILE+1);
+        } else if (t === 3) { // road
+          ctx.fillStyle = '#a08a6a';
+          ctx.fillRect(s.x, s.y, TILE+1, TILE+1);
+        } else if (t === 5) { // tree marker (draw later)
+          ctx.fillStyle = '#3d7a4a';
+          ctx.fillRect(s.x, s.y, TILE+1, TILE+1);
+        }
+      }
+    }
+
+    // house roofs (drawn higher)
+    houses.forEach(h => {
+      const s = worldToScreen(h.x*TILE, h.y*TILE);
+      // walls already drawn, now roof
+      ctx.fillStyle = '#8b3a2a';
+      ctx.beginPath();
+      ctx.moveTo(s.x - 4, s.y + 8);
+      ctx.lineTo(s.x + h.w*TILE/2, s.y - 18);
+      ctx.lineTo(s.x + h.w*TILE + 4, s.y + 8);
+      ctx.closePath();
+      ctx.fill();
+      // door
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(s.x + h.w*TILE/2 - 10, s.y + h.h*TILE - 28, 20, 28);
+    });
+
+    // trees
+    for (let ty = startTY; ty < endTY; ty++) {
+      for (let tx = startTX; tx < endTX; tx++) {
+        if (map[ty][tx] !== 5) continue;
+        const s = worldToScreen(tx*TILE + 24, ty*TILE + 24);
+        // trunk
+        ctx.fillStyle = '#5c3a1e';
+        ctx.fillRect(s.x-4, s.y, 8, 18);
+        // leaves
+        ctx.fillStyle = '#2d6a3a';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y-8, 18, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#3d8a4a';
+        ctx.beginPath();
+        ctx.arc(s.x-6, s.y-14, 12, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // supplies crate
+    if (window.supplies && !window.supplies.taken) {
+      const s = worldToScreen(window.supplies.x, window.supplies.y);
+      ctx.fillStyle = '#8B5A2B';
+      ctx.fillRect(s.x-14, s.y-10, 28, 20);
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(s.x-10, s.y-6, 20, 4);
+      ctx.fillStyle = '#f5e6c8';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('Zalihe', s.x-16, s.y-14);
+    }
+
+    // NPCs
+    npcs.forEach(n => {
+      const s = worldToScreen(n.x, n.y);
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y+10, 12, 5, 0, 0, Math.PI*2);
+      ctx.fill();
+      // body
+      ctx.fillStyle = n.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, n.radius, 0, Math.PI*2);
+      ctx.fill();
+      // head
+      ctx.fillStyle = '#e8c4a0';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y - n.radius + 4, 9, 0, Math.PI*2);
+      ctx.fill();
+      // name
+      ctx.fillStyle = '#f5e6c8';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(n.name, s.x, s.y - n.radius - 8);
+    });
+
+    // enemies
+    enemies.forEach(e => {
+      if (e.hp <= 0) return;
+      const s = worldToScreen(e.x, e.y);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y+10, 12, 5, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, e.radius, 0, Math.PI*2);
+      ctx.fill();
+      // hp bar
+      ctx.fillStyle = '#333';
+      ctx.fillRect(s.x-16, s.y-e.radius-12, 32, 5);
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(s.x-16, s.y-e.radius-12, 32*(e.hp/e.maxHp), 5);
+      if (e.type === 'dummy') {
+        ctx.fillStyle = '#f5e6c8';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Lutka', s.x, s.y - e.radius - 16);
+      }
+    });
+
+    // player
+    {
+      const s = worldToScreen(player.x, player.y - player.jump*0.6);
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, worldToScreen(player.x, player.y).y + 12, 13, 5, 0, 0, Math.PI*2);
+      ctx.fill();
+      // body
+      ctx.globalAlpha = player.invuln > 0 && Math.floor(player.invuln/3)%2 ? 0.4 : 1;
+      ctx.fillStyle = '#1a4a6a'; // blue-ish shirt
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, player.radius, 0, Math.PI*2);
+      ctx.fill();
+      // head
+      ctx.fillStyle = '#e8c4a0';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y - 11, 10, 0, Math.PI*2);
+      ctx.fill();
+      // simple hair
+      ctx.fillStyle = '#2a1a0a';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y - 15, 8, Math.PI, 0);
+      ctx.fill();
+      // sword swing
+      if (player.attacking > 0) {
+        ctx.strokeStyle = '#c0c0c0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const ang = player.facing + (12 - player.attacking) * 0.25 - 0.6;
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + Math.cos(ang)*36, s.y + Math.sin(ang)*36);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // name
+      ctx.fillStyle = '#c9a227';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Nikolas', s.x, s.y - 28);
+    }
+
+    // particles
+    particles.forEach(p => {
+      const s = worldToScreen(p.x, p.y);
+      ctx.globalAlpha = p.life / 20;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // horizon ships in ending
+    if (state.phase === 'ending') {
+      const s = worldToScreen(20*TILE, 32*TILE);
+      ctx.fillStyle = '#1a2a3a';
+      for (let i=0;i<3;i++) {
+        ctx.beginPath();
+        ctx.moveTo(s.x - 40 + i*50, s.y + 20);
+        ctx.lineTo(s.x - 20 + i*50, s.y);
+        ctx.lineTo(s.x + 10 + i*50, s.y + 20);
+        ctx.fill();
+      }
+    }
+  }
+
+  // ---------- LOOP ----------
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(32, now - last);
+    last = now;
+    update(dt / 16.67); // normalize roughly to 60fps units
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // initial HUD
+  updateHUD();
+  updateInv();
+  </script>
+</body>
+</html>
